@@ -1,11 +1,11 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.Random;
-//import java.awt.event.ActionEvent;
-//import java.awt.event.ActionListener;
-//import java.awt.event.KeyAdapter;
-//import java.awt.event.KeyEvent;
+import javax.sound.sampled.*;
+
 
 public class GamePanel extends JPanel implements ActionListener {
 
@@ -13,15 +13,17 @@ public class GamePanel extends JPanel implements ActionListener {
     static final int SCREEN_HEIGHT=600;
     static final int UNIT_SIZE=25; //size of objects
     static final int GAME_UNITS=(SCREEN_WIDTH*SCREEN_HEIGHT)/UNIT_SIZE; //how many objects can feet on the screen
-    static final int DELAY=120; //higher is the delay slower is the game
+    int DELAY=120; //higher is the delay slower is the game
     //2 arrays will hold all the coordinates for all the parts of snake including head of the snake
-    final int x[]=new int[GAME_UNITS]; //this will hold all the x coordinates of snake
-    final int y[]=new int[GAME_UNITS]; //this will hold all the x coordinates of snake
+    int x[]=new int[GAME_UNITS]; //this will hold all the x coordinates of snake
+    int y[]=new int[GAME_UNITS]; //this will hold all the x coordinates of snake
 
     //initial body part of the snake
     int bodyParts=3;
 
     int applesEaten=0;
+
+    int maxScore=0;
     int appleX;//x coordinate of apples location which will random each time
     int appleY;;//y coordinate of apples location which will random each time
 
@@ -50,6 +52,7 @@ public class GamePanel extends JPanel implements ActionListener {
         running=true; //
         timer=new Timer(DELAY,this); //to detect how fast the game is running
         timer.start();
+
 
     }
 
@@ -89,7 +92,7 @@ public class GamePanel extends JPanel implements ActionListener {
             //show the score on the top of screen
             g.setColor(Color.red);
             g.setFont(new Font("Ink Free",Font.BOLD,40));
-            //allign the text in center of the screen
+            //align the text in center of the screen
             FontMetrics metrics=getFontMetrics(g.getFont());
             int x=(SCREEN_WIDTH-metrics.stringWidth("Score: "+applesEaten))/2;
             int y=g.getFont().getSize();
@@ -133,20 +136,33 @@ public class GamePanel extends JPanel implements ActionListener {
 
     }
 
-    public void checkApple(){
+    public void checkApple() throws UnsupportedAudioFileException, LineUnavailableException, IOException {
         //if snake head touches the apple
         if((x[0]==appleX)&&(y[0])==appleY){
+//            playEatSound();
             bodyParts++; //snake body will grow
             applesEaten++; //score increases
+            maxScore=Math.max(maxScore,applesEaten);
             newApple();//new apple is created
         }
 
     }
 
-    public void checkCollision(){
+    public void playEatSound() throws UnsupportedAudioFileException, IOException, LineUnavailableException {
+        File file =new File("eat.wav");
+        AudioInputStream audio= AudioSystem.getAudioInputStream(file);
+        Clip clip=AudioSystem.getClip();
+        clip.open(audio);
+
+        clip.start();
+    }
+
+
+    public void checkCollision() throws UnsupportedAudioFileException, LineUnavailableException, IOException {
         //checks if head collids with body
         for(int i=bodyParts;i>0;i--){
             if((x[0]==x[i])&&y[0]==y[i]){ //head collided with the body
+                playCollisionSound();
                 running=false; //stop the game
 
             }
@@ -164,10 +180,20 @@ public class GamePanel extends JPanel implements ActionListener {
 
         //if not running i.e running=false
         if(!running){
+            playCollisionSound();
             timer.stop();
         }
 
 
+    }
+
+    public void playCollisionSound() throws UnsupportedAudioFileException, IOException, LineUnavailableException {
+        File file =new File("collision.wav");
+        AudioInputStream audio= AudioSystem.getAudioInputStream(file);
+        Clip clip=AudioSystem.getClip();
+        clip.open(audio);
+
+        clip.start();
     }
 
     public void gameOver(Graphics g){
@@ -188,9 +214,26 @@ public class GamePanel extends JPanel implements ActionListener {
         //allign the text in center of the screen
         FontMetrics metrics1=getFontMetrics(g.getFont());
         int a=(SCREEN_WIDTH-metrics1.stringWidth("Score: "+applesEaten))/2;
-        int b=SCREEN_HEIGHT/4*3;
+        int b=SCREEN_HEIGHT/4;
         g.drawString("Score: "+applesEaten,a,b);
 
+        g.setColor(Color.white);
+        g.setFont(new Font("Segoe Script",Font.PLAIN,20));
+        FontMetrics metrics2=getFontMetrics(g.getFont());
+        int m=(SCREEN_WIDTH-metrics2.stringWidth("Press SPACE To Restart"))/2;
+        int n=SCREEN_HEIGHT/4*3;
+        g.drawString("Press SPACE To Restart",m,n);
+    }
+    private void restart() {
+        x=new int[GAME_UNITS]; //this will hold all the x coordinates of snake
+        y=new int[GAME_UNITS]; //this will hold all the x coordinates of snake
+        DELAY=100;
+        timer=new Timer(DELAY,this);
+        bodyParts=3;
+        applesEaten=0;
+        direction='R';
+        running=false;
+        startGame();
 
     }
 
@@ -199,8 +242,24 @@ public class GamePanel extends JPanel implements ActionListener {
 
         if(running){
             move();//move the snake
-            checkApple();//
-            checkCollision();
+            try {
+                checkApple();//
+            } catch (UnsupportedAudioFileException ex) {
+                throw new RuntimeException(ex);
+            } catch (LineUnavailableException ex) {
+                throw new RuntimeException(ex);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+            try {
+                checkCollision();
+            } catch (UnsupportedAudioFileException ex) {
+                throw new RuntimeException(ex);
+            } catch (LineUnavailableException ex) {
+                throw new RuntimeException(ex);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
 
         }
         //if the game is no longer running
@@ -224,8 +283,18 @@ public class GamePanel extends JPanel implements ActionListener {
                 case KeyEvent.VK_DOWN:
                     if(direction!='U') direction='D';
                     break;
+                case KeyEvent.VK_SPACE:
+                    repaint();
+                    break;
+
+            }
+            if(e.getKeyCode()==KeyEvent.VK_SPACE){
+                restart();
             }
 
         }
+
     }
+
+
 }

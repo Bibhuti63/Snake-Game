@@ -4,6 +4,7 @@ public class GameFrame extends JFrame {
     GameFrame(){
 //        GamePanel panel=new GamePanel();
 //        this.add(panel);
+//        this.setBounds(10,10,600,600);
         this.add(new GamePanel());
         this.setTitle("Snake");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
